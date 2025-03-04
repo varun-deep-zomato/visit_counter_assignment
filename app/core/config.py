@@ -4,7 +4,7 @@ import os
 
 class Settings(BaseSettings):
     # Redis Configuration
-    REDIS_NODES: str = "redis://redis1:6379,redis://redis2:6379,redis://redis3:6379"
+    REDIS_NODES: str = "redis://redis1:7070,redis://redis2:7071"
     REDIS_PASSWORD: str = ""
     REDIS_DB: int = 0
     

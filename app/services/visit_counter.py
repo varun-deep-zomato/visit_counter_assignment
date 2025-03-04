@@ -5,6 +5,7 @@ from ..core.redis_manager import RedisManager
 from fastapi import HTTPException
 import time
 from collections import defaultdict
+from urllib.parse import urlparse
 
 cache = {}
 cache_timestamps = {}
@@ -74,4 +75,7 @@ class VisitCounterService:
             cache[page_id] = count
             cache_timestamps[page_id] = current_time
             total_count = count + buffered_count
-            return {'visits': total_count, 'served_via': 'redis'}
+            redis_node = await self.redis_manager.get_connection(redis_key)
+            node = self.redis_manager.consistent_hash.get_node(redis_key)
+            port = urlparse(node).port if node else None
+            return {'visits': total_count, 'served_via': f'redis_{port}'}

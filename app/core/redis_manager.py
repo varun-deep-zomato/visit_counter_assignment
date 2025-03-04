@@ -3,6 +3,7 @@ from typing import Dict, List, Optional, Any
 from urllib.parse import urlparse
 from .consistent_hash import ConsistentHash
 from .config import settings
+import asyncio
 
 class RedisManager:
     def __init__(self):
@@ -28,18 +29,41 @@ class RedisManager:
                 print(f"Error connecting to Redis node {node}: {str(e)}")
                 raise
 
-    async def get_connection(self, key: str) -> redis.Redis:
+    async def get_connection(self, key: str, max_retries: int = 3) -> redis.Redis:
         """
-        Get Redis connection for the given key using consistent hashing
+        Get Redis connection for the given key using consistent hashing with retry logic
         
         Args:
             key: The key to determine which Redis node to use
+            max_retries: Maximum number of retry attempts
             
         Returns:
             Redis client for the appropriate node
         """
-        node = self.consistent_hash.get_node(key)
-        return self.redis_clients[node]
+        retries = 0
+        while retries < max_retries:
+            node = self.consistent_hash.get_node(key)
+            try:
+                client = self.redis_clients[node]
+                # Test the connection
+                await client.ping()
+                return client
+            except (redis.ConnectionError, redis.TimeoutError) as e:
+                retries += 1
+                if retries == max_retries:
+                    raise e
+                await asyncio.sleep(0.1 * (2 ** retries))  # Exponential backoff
+                # Try to reconnect
+                try:
+                    self.redis_clients[node] = redis.from_url(
+                        node,
+                        db=settings.REDIS_DB,
+                        decode_responses=True,
+                        socket_timeout=5,
+                        socket_connect_timeout=5
+                    )
+                except Exception:
+                    pass  # Continue to next retry if reconnection fails
 
     async def increment(self, key: str, amount: int = 1) -> int:
         """
