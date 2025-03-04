@@ -17,7 +17,7 @@ class VisitCounterService:
         self.visit_buffer = defaultdict(int)
         self.buffer_lock = asyncio.Lock()
         self.last_flush_time = time.time()
-        self.flush_interval = 5  # seconds
+        self.flush_interval = 30  # seconds
 
     async def start_periodic_flush(self):
         """Start the periodic flush background task"""
