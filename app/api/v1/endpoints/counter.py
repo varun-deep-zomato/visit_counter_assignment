@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import Dict, Any
+from app.core.redis_manager import RedisManager
 from ....services.visit_counter import VisitCounterService
 from ....schemas.counter import VisitCount
 
@@ -7,7 +8,7 @@ router = APIRouter()
 
 # Dependency to get VisitCounterService instance
 def get_visit_counter_service():
-    return VisitCounterService()
+    return VisitCounterService(RedisManager())
 
 @router.post("/visit/{page_id}")
 async def record_visit(
@@ -28,7 +29,7 @@ async def get_visits(
 ):
     """Get visit count for a website"""
     try:
-        count = await counter_service.get_visit_count(page_id)
-        return VisitCount(visits=count, served_via="redis")
+        count_response = await counter_service.get_visit_count(page_id)
+        return VisitCount(visits=count_response['visits'][0], served_via=count_response['served_via'])
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
