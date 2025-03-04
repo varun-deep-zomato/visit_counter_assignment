@@ -1,4 +1,4 @@
-import redis
+import redis.asyncio as redis
 from typing import Dict, List, Optional, Any
 from urllib.parse import urlparse
 from .consistent_hash import ConsistentHash
@@ -55,7 +55,7 @@ class RedisManager:
         redis_client = await self.get_connection(key)
         
         try:
-            return redis_client.incrby(key, amount)
+            return await redis_client.incrby(key, amount)
         except Exception as e:
             print(f"Error incrementing key {key}: {str(e)}")
             return 0
@@ -72,7 +72,7 @@ class RedisManager:
         """
         redis_client = await self.get_connection(key)
         try:
-            value = redis_client.get(key)
+            value = await redis_client.get(key)
             return int(value) if value is not None else None
         except Exception as e:
             print(f"Error getting key {key}: {str(e)}")
